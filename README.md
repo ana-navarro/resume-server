@@ -22,10 +22,11 @@ de código nos serviços.
   upload/auditoria de `features/injection/rules.md`). Os demais serviços não são expostos publicamente,
   só acessíveis dentro da rede Docker por outros serviços (Constitution Principle II).
 - `scripts/auto-update.sh`: roda dentro do serviço `auto-updater`, faz `git pull --ff-only` periódico em
-  cada um dos 8 repositórios GitHub independentes deste ecossistema (`resume-ia`, `resume-server`,
-  `resume-bff`, `resume-guard-rails`, `resume-llm-engine`, `resume-injections`, `resume-orchestrator`,
-  `resume-embeddings`), para que o hot-reloading já ativo pegue automaticamente qualquer commit novo
-  enviado ao GitHub — sem servidor remoto de deploy, só sincronização dos checkouts locais.
+  cada um dos 9 repositórios GitHub independentes deste ecossistema (`resume-ia`, `resume-server`,
+  `resume-app`, `resume-bff`, `resume-guard-rails`, `resume-llm-engine`, `resume-injections`,
+  `resume-orchestrator`, `resume-embeddings`), para que o hot-reloading já ativo pegue automaticamente
+  qualquer commit novo enviado ao GitHub — sem servidor remoto de deploy, só sincronização dos checkouts
+  locais.
 
 ## Estrutura
 
@@ -35,7 +36,7 @@ resume-server/
 ├── nginx/
 │   └── nginx.conf              # roteamento reverso
 └── scripts/
-    └── auto-update.sh          # git pull --ff-only periódico nos 8 repositórios
+    └── auto-update.sh          # git pull --ff-only periódico nos 9 repositórios
 ```
 
 ## Como subir o ambiente
@@ -57,7 +58,8 @@ Network infrastructure and gateway: `docker-compose.yml` orchestrates all 7 serv
 an `auto-updater` sidecar, each service's source bind-mounted for hot-reload (no rebuild needed for a
 code change to take effect, per Constitution Principle IV). `nginx/nginx.conf` publicly routes only to
 `resume-app`, `resume-bff`, and `resume-orchestrator`, keeping the other services internal-only per the
-Constitution's strict call flow. `scripts/auto-update.sh` periodically fast-forward-pulls each of the 8
-independent GitHub repos in this ecosystem so the already-running, hot-reloading containers pick up new
-commits automatically — there is no remote deploy target in this project, so this keeps the local
-checkouts in sync instead.
+Constitution's strict call flow. `scripts/auto-update.sh` periodically fast-forward-pulls each of the 9
+independent GitHub repos in this ecosystem (including `resume-app`, which — like every service under
+`/services/*` — turns out to be its own separate repo, not tracked by the outer `resume-ia` repo) so the
+already-running, hot-reloading containers pick up new commits automatically — there is no remote deploy
+target in this project, so this keeps the local checkouts in sync instead.

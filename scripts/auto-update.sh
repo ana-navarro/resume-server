@@ -5,7 +5,7 @@
 set -u
 
 INTERVAL=15
-REPOS="/workspace /workspace/resume-server /workspace/services/resume-bff /workspace/services/resume-guard-rails /workspace/services/resume-llm-engine /workspace/services/resume-injections /workspace/services/resume-orchestrator /workspace/services/resume-embeddings"
+REPOS="/workspace /workspace/resume-server /workspace/apps/resume-app /workspace/services/resume-bff /workspace/services/resume-guard-rails /workspace/services/resume-llm-engine /workspace/services/resume-injections /workspace/services/resume-orchestrator /workspace/services/resume-embeddings"
 
 git config --global --add safe.directory '*'
 
