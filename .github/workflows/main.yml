@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose.yml syntax
+        run: python3 -c "import yaml; yaml.safe_load(open('docker-compose.yml', encoding='utf-8'))"
+      - name: Validate nginx.conf syntax
+        run: |
+          docker run --rm -v "$PWD/nginx/nginx.conf:/etc/nginx/nginx.conf:ro" nginx:alpine nginx -t
+      - name: Shellcheck scripts
+        run: shellcheck scripts/*.sh
+
+  # Only advances after validate passes, and only on a real merge to main -- never on a PR.
+  # auto-update.sh (in this same repo) tracks this branch, not main, for itself.
+  promote:
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: git push origin HEAD:refs/heads/deployed --force

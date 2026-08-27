@@ -27,15 +27,22 @@ de código nos serviços.
   `resume-embeddings`), para que o hot-reloading já ativo pegue automaticamente qualquer commit novo —
   sem servidor remoto de deploy, só sincronização dos checkouts locais. Sempre fast-forward
   (`--ff-only`), nunca sobrescreve alterações locais.
-  - **Gate de CI (`deployed` branch)**: `resume-app`, `resume-injections`, `resume-orchestrator` e
-    `resume-embeddings` têm pipeline de CI (`.github/workflows/ci.yml` em cada repo). A cada `push` para
-    `main`, a CI roda a suíte de testes (unitários + cobertura ≥80% nos três serviços Python, via `make
-    validate-pipeline`; lint + build no frontend, que ainda não tem suíte de testes própria — ver nota no
-    workflow) e só então avança um branch `deployed` para aquele commit — nunca em PR, só em merge real.
-    `auto-update.sh` rastreia `deployed` (não `main`) nesses 4 repositórios, então o ambiente local só
-    recebe código que já passou pela pipeline. Os demais 5 repositórios (`resume-ia`, `resume-server`,
-    `resume-bff`, `resume-guard-rails`, `resume-llm-engine`) ainda não têm pipeline própria — continuam
-    com `git pull --ff-only` direto em `main`, sem gate.
+  - **Gate de CI (`deployed` branch)**: todo repositório que roda de fato dentro do
+    `docker-compose` (os 7 serviços + este próprio `resume-server`) tem
+    `.github/workflows/main.yml`. **Importante**: uma GitHub Action roda nos servidores do GitHub, não
+    consegue acessar a máquina local do desenvolvedor nem os containers já rodando — por isso ela nunca
+    faz o `git pull` diretamente; o que ela faz é decidir *o quê* pode ser puxado, avançando um branch
+    `deployed` só depois que a pipeline passa. `resume-injections`, `resume-orchestrator` e
+    `resume-embeddings` rodam a suíte real (testes unitários + cobertura ≥80%, via `make
+    validate-pipeline`); `resume-app` roda lint + build (ainda sem suíte de testes própria); `resume-bff`,
+    `resume-guard-rails`, `resume-llm-engine` (ainda stubs, sem `Makefile`/testes) e este próprio
+    `resume-server` rodam a validação disponível — `docker build` nos três primeiros, sintaxe de
+    `docker-compose.yml`/`nginx.conf` + `shellcheck` nos scripts para `resume-server`. Em todos os casos,
+    o job `promote` só roda **depois** (`needs:`) do job de validação passar, e só em `push` real para
+    `main` — nunca em PR. `auto-update.sh` rastreia `deployed` (não `main`) em todos esses 8
+    repositórios, então o ambiente local só recebe código que já passou pela pipeline. Só o repositório
+    externo `resume-ia` (que só guarda o tracking das tasks, não roda em `docker-compose`) continua sem
+    gate, com `git pull --ff-only` direto em `main`.
 
 ## Estrutura
 
@@ -45,7 +52,7 @@ resume-server/
 ├── nginx/
 │   └── nginx.conf              # roteamento reverso
 └── scripts/
-    └── auto-update.sh          # sync periódico nos 9 repositórios (4 deles gated por CI)
+    └── auto-update.sh          # sync periódico nos 9 repositórios (8 deles gated por CI)
 ```
 
 ## Como subir o ambiente
@@ -73,11 +80,17 @@ its own separate repo, not tracked by the outer `resume-ia` repo) so the already
 containers pick up new commits automatically — there is no remote deploy target in this project, so this
 keeps the local checkouts in sync instead. Always fast-forward-only, never overwrites local changes.
 
-**CI gate (`deployed` branch)**: `resume-app`, `resume-injections`, `resume-orchestrator`, and
-`resume-embeddings` each have a `.github/workflows/ci.yml` that runs the test suite (unit tests +
-≥80% coverage gate for the three Python services, via `make validate-pipeline`; lint + build for the
-frontend, which has no test suite of its own yet) on every push to `main`, and only then — never on a
-PR — fast-forwards a bot-managed `deployed` branch to that commit. `auto-update.sh` tracks `deployed`
-(not `main`) for those 4 repos, so the local environment only ever receives code that has actually
-passed CI. The remaining 5 repos (`resume-ia`, `resume-server`, `resume-bff`, `resume-guard-rails`,
-`resume-llm-engine`) have no pipeline yet and are still pulled directly from `main`, ungated.
+**CI gate (`deployed` branch)**: every repo that actually runs inside `docker-compose` (the 7
+services plus `resume-server` itself) has `.github/workflows/main.yml`. A GitHub Action runs on
+GitHub's own servers — it cannot reach the developer's machine or the already-running containers, so
+it never does the `git pull` itself; instead it decides *what's allowed* to be pulled, by only
+advancing a `deployed` branch once its validation job passes. `resume-injections`,
+`resume-orchestrator`, and `resume-embeddings` run the real suite (unit tests + ≥80% coverage, via
+`make validate-pipeline`); `resume-app` runs lint + build (no test suite of its own yet);
+`resume-bff`, `resume-guard-rails`, `resume-llm-engine` (still stubs, no `Makefile`/tests) and
+`resume-server` itself run whatever validation is meaningful for them — `docker build` for the three
+stubs, `docker-compose.yml`/`nginx.conf` syntax + `shellcheck` for `resume-server`. In every case the
+`promote` job only runs (`needs:`) after validation passes, and only on a real push to `main` — never
+a PR. `auto-update.sh` tracks `deployed` (not `main`) across all 8 of those repos, so the local
+environment only ever receives code that has actually passed CI. Only the outer `resume-ia` repo
+(task tracking only, doesn't run in `docker-compose`) stays ungated, pulled directly from `main`.

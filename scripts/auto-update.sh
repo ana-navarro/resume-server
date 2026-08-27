@@ -3,16 +3,18 @@
 # already-running, hot-reloading containers pick up new commits without any manual step.
 # Fast-forward only: never overwrites uncommitted local changes or diverged history.
 #
-# GATED_REPOS have a CI pipeline (unit tests + coverage >= 80% gate, Constitution Principle III)
-# that only advances their `deployed` branch after a merge to `main` passes. This script tracks
-# `deployed`, not `main`, for those repos, so the local environment never picks up a commit that
-# hasn't actually passed CI. DIRECT_REPOS have no pipeline yet and keep the old behavior of
-# tracking their current branch directly.
+# GATED_REPOS have a CI pipeline (unit tests + coverage >= 80% gate for the Python services with
+# real code; Docker build / config validation for the stubs and infra repo, Constitution
+# Principle III) that only advances their `deployed` branch after a merge to `main` passes. This
+# script tracks `deployed`, not `main`, for those repos, so the local environment never picks up a
+# commit that hasn't actually passed CI. Every repo that actually runs in docker-compose is
+# gated; DIRECT_REPOS is just the outer `resume-ia` repo (task tracking, not part of the compose
+# stack), which has no pipeline and keeps the old behavior of tracking its branch directly.
 set -u
 
 INTERVAL=15
-GATED_REPOS="/workspace/apps/resume-app /workspace/services/resume-injections /workspace/services/resume-orchestrator /workspace/services/resume-embeddings"
-DIRECT_REPOS="/workspace /workspace/resume-server /workspace/services/resume-bff /workspace/services/resume-guard-rails /workspace/services/resume-llm-engine"
+GATED_REPOS="/workspace/resume-server /workspace/apps/resume-app /workspace/services/resume-bff /workspace/services/resume-guard-rails /workspace/services/resume-llm-engine /workspace/services/resume-injections /workspace/services/resume-orchestrator /workspace/services/resume-embeddings"
+DIRECT_REPOS="/workspace"
 
 git config --global --add safe.directory '*'
 
