@@ -18,7 +18,7 @@ DIRECT_REPOS="/workspace"
 
 git config --global --add safe.directory '*'
 
-echo "auto-updater: watching $(echo $GATED_REPOS | wc -w) CI-gated repos (deployed branch) and $(echo $DIRECT_REPOS | wc -w) direct repos every ${INTERVAL}s (fast-forward only)"
+echo "auto-updater: watching $(echo "$GATED_REPOS" | wc -w) CI-gated repos (deployed branch) and $(echo "$DIRECT_REPOS" | wc -w) direct repos every ${INTERVAL}s (fast-forward only)"
 
 update_direct() {
   repo="$1"
